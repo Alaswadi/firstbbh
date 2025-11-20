@@ -45,19 +45,52 @@ def main():
         # 4. Content Discovery & JS Monitoring
         print("[*] Gathering URLs and JS files...")
         all_js_urls = []
+        all_urls = []
+        
         for host in live_hosts:
-            # Strip protocol for gau if needed, or keep it. Gau usually takes domain.
-            # But here we might want to run gau on the specific host if it's a subdomain
-            # For now, let's just run gau on the main domain once, but that might be too broad.
-            # Better: run gau on the new live subdomains.
+            # host is now just the URL (e.g., https://example.com) thanks to probing.py fix
+            # We pass the domain/host to gau. 
+            # gau accepts the URL or domain.
             
-            host_clean = host.replace("http://", "").replace("https://", "")
-            gau_out = os.path.join(domain_output_dir, f"{host_clean}_urls.txt")
-            urls = run_gau(host_clean, gau_out)
+            # Clean host for display or other tools if needed, but gau handles URLs fine.
+            # We won't write per-host files anymore.
+            
+            urls = run_gau(host, None) # Modified run_gau to accept None for output file if we want to capture return only?
+            # Wait, run_gau currently requires an output file. 
+            # Let's just run gau and append to our list, or use a temp file.
+            # Actually, let's update run_gau to be more flexible, but for now let's just use a temporary list.
+            
+            # To avoid changing run_gau signature too much in this step, let's just pass a temp filename or handle it.
+            # But wait, run_gau in modules/content.py writes to file.
+            # Let's modify run_gau in the next step to return output if no file is provided, or just read the file.
+            
+            # For now, let's define a single output file for ALL URLs
+            all_urls_file = os.path.join(domain_output_dir, "all_urls.txt")
+            
+            # We can run gau and append to the file? 
+            # Or we can just run gau on the main domain? 
+            # Running gau on every subdomain is better for coverage.
+            
+            # Let's use a temp file for each host to avoid the messy filename issue, then merge.
+            temp_gau_file = os.path.join(domain_output_dir, "temp_gau.txt")
+            urls = run_gau(host, temp_gau_file)
+            all_urls.extend(urls)
             
             # Filter for JS files
             js_urls = [u for u in urls if u.endswith(".js")]
             all_js_urls.extend(js_urls)
+            
+            # Remove temp file
+            if os.path.exists(temp_gau_file):
+                os.remove(temp_gau_file)
+
+        # Save all URLs to one file
+        all_urls_file = os.path.join(domain_output_dir, "all_urls.txt")
+        with open(all_urls_file, 'w') as f:
+            for url in list(set(all_urls)):
+                f.write(f"{url}\n")
+        
+        print(f"[+] Found {len(all_urls)} URLs. Saved to all_urls.txt")
             
         # 5. JS Monitoring
         if all_js_urls:

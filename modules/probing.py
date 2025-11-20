@@ -28,13 +28,15 @@ def run_httpx(host_list_file, output_file):
         "-l", host_list_file,
         "-o", output_file,
         "-silent",
-        "-title", "-tech-detect", "-status-code"
+        "-title", "-tech-detect", "-status-code",
+        "-no-color"
     ]
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if os.path.exists(output_file):
             with open(output_file, 'r') as f:
-                return [line.strip() for line in f if line.strip()]
+                # Extract just the URL from the line (first item)
+                return [line.strip().split(' ')[0] for line in f if line.strip()]
     except subprocess.CalledProcessError as e:
         print(f"Error running httpx: {e}")
     except FileNotFoundError:
