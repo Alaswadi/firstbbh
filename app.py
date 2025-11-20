@@ -68,4 +68,5 @@ def api_scans():
     return jsonify(scan_history)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5050)
+    # Listen on 0.0.0.0 to allow external access (e.g., from VPS)
+    app.run(debug=True, port=5050, host='0.0.0.0')
