@@ -12,6 +12,7 @@ from database import (
     get_subdomains_by_scan,
     get_live_hosts,
     get_urls,
+    get_open_ports,
     migrate_from_json,
     delete_scan
 )
@@ -72,29 +73,6 @@ def view_results(scan_id):
     
     # Get detailed results
     stats = get_scan_statistics(scan_id)
-    subdomains = get_subdomains_by_scan(scan_id)
-    live_hosts = get_live_hosts(scan_id)
-    urls = get_urls(scan_id)
-    
-    # Parse tools from JSON string
-    if scan.get('tools'):
-        try:
-            scan['tools'] = json.loads(scan['tools'])
-        except:
-            scan['tools'] = []
-    
-    return render_template('results.html', 
-                         scan=scan, 
-                         stats=stats,
-                         subdomains=subdomains[:100],  # Limit display
-                         live_hosts=live_hosts[:100],
-                         urls=urls[:100])
-
-@app.route('/api/scans')
-def api_scans():
-    """API endpoint to get all scans."""
-    scans = get_all_scans(limit=100)
-    return jsonify(scans)
 
 @app.route('/api/scan/<int:scan_id>')
 def api_scan(scan_id):

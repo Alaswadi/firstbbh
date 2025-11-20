@@ -98,6 +98,31 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
             from modules.probing import run_naabu
             open_ports = run_naabu(naabu_input, naabu_output)
             print(f"[+] Found {len(open_ports)} hosts with open ports.")
+            
+            # Store open ports in database
+            if open_ports:
+                from database import add_open_ports
+                ports_data = []
+                for port_line in open_ports:
+                    # Naabu output format: host:port or host:port [protocol]
+                    try:
+                        if ':' in port_line:
+                            parts = port_line.split(':')
+                            host = parts[0]
+                            port_info = parts[1].split()[0]  # Get port number, ignore protocol if present
+                            port = int(port_info)
+                            ports_data.append({
+                                'host': host,
+                                'port': port,
+                                'protocol': 'tcp'
+                            })
+                    except (ValueError, IndexError) as e:
+                        print(f"[!] Could not parse port line: {port_line}")
+                        continue
+                
+                if ports_data:
+                    add_open_ports(ports_data, scan_id)
+                    print(f"[+] Stored {len(ports_data)} open ports in database.")
         else:
             print("[-] No subdomains found.")
         

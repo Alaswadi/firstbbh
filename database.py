@@ -100,6 +100,20 @@ def init_db():
             )
         """)
         
+        # Open ports table (for Naabu results)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS open_ports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                host TEXT NOT NULL,
+                port INTEGER NOT NULL,
+                protocol TEXT DEFAULT 'tcp',
+                discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                scan_id INTEGER,
+                FOREIGN KEY (scan_id) REFERENCES scans(id),
+                UNIQUE(host, port, scan_id)
+            )
+        """)
+        
         # Vulnerabilities table (for future use)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vulnerabilities (
@@ -339,6 +353,39 @@ def get_js_files(scan_id=None, changed_only=False):
             cursor.execute("SELECT * FROM js_files")
         return [dict(row) for row in cursor.fetchall()]
 
+# ==================== Open Ports Operations ====================
+
+def add_open_ports(ports_data, scan_id):
+    """Add multiple open ports from Naabu scan."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        for port_info in ports_data:
+            try:
+                cursor.execute("""
+                    INSERT INTO open_ports (host, port, protocol, scan_id)
+                    VALUES (?, ?, ?, ?)
+                """, (
+                    port_info.get('host'),
+                    port_info.get('port'),
+                    port_info.get('protocol', 'tcp'),
+                    scan_id
+                ))
+            except sqlite3.IntegrityError:
+                # Port already exists for this host in this scan, skip
+                pass
+
+def get_open_ports(scan_id=None, host=None):
+    """Get open ports, optionally filtered by scan or host."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        if scan_id:
+            cursor.execute("SELECT * FROM open_ports WHERE scan_id = ?", (scan_id,))
+        elif host:
+            cursor.execute("SELECT * FROM open_ports WHERE host = ?", (host,))
+        else:
+            cursor.execute("SELECT * FROM open_ports")
+        return [dict(row) for row in cursor.fetchall()]
+
 # ==================== Migration from JSON ====================
 
 def migrate_from_json():
@@ -411,6 +458,10 @@ def get_scan_statistics(scan_id):
         # Count JS files
         cursor.execute("SELECT COUNT(*) as count FROM js_files WHERE scan_id = ?", (scan_id,))
         stats['js_files_count'] = cursor.fetchone()['count']
+        
+        # Count open ports
+        cursor.execute("SELECT COUNT(*) as count FROM open_ports WHERE scan_id = ?", (scan_id,))
+        stats['open_ports_count'] = cursor.fetchone()['count']
         
         return stats
 
