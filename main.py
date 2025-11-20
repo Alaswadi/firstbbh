@@ -46,13 +46,13 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
     }
 
     try:
-        # Standard workflow: Discovery → Port Scan → Probing
+        # Standard workflow: Discovery → Probing → Port Scan
         print("[*] Running Subdomain Discovery...")
         
         # Always use subfinder for discovery
         found_subdomains = run_discovery(domain, domain_output_dir, ['subfinder'])
         
-        # Store subdomains in database
+        # Store subdomains in database immediately
         print("[*] Storing subdomains in database...")
         new_subdomains = update_subdomains(found_subdomains, domain, scan_id)
         scan_results["new_subdomains"] = new_subdomains
@@ -63,22 +63,7 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
             if new_subdomains:
                 process_new_subdomains(new_subdomains)
             
-            # Port scanning with Naabu (important ports only)
-            print(f"[*] Scanning important ports on {len(found_subdomains)} subdomains...")
-            naabu_input = os.path.join(domain_output_dir, "subdomains.txt")
-            naabu_output = os.path.join(domain_output_dir, "open_ports.txt")
-            
-            # Write subdomains to file for naabu
-            with open(naabu_input, 'w') as f:
-                for sub in found_subdomains:
-                    f.write(f"{sub}\n")
-            
-            # Run naabu
-            from modules.probing import run_naabu
-            open_ports = run_naabu(naabu_input, naabu_output)
-            print(f"[+] Found {len(open_ports)} hosts with open ports.")
-            
-            # Web server probing with HTTPX
+            # Web server probing with HTTPX (before port scanning)
             print(f"[*] Probing {len(found_subdomains)} subdomains for web servers...")
             live_hosts_file = os.path.join(domain_output_dir, "live_hosts.txt")
             
@@ -98,6 +83,21 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
                         'subdomain': subdomain
                     })
                 add_live_hosts(hosts_data, scan_id)
+            
+            # Port scanning with Naabu (last step, important ports only)
+            print(f"[*] Scanning important ports on {len(found_subdomains)} subdomains...")
+            naabu_input = os.path.join(domain_output_dir, "subdomains.txt")
+            naabu_output = os.path.join(domain_output_dir, "open_ports.txt")
+            
+            # Write subdomains to file for naabu
+            with open(naabu_input, 'w') as f:
+                for sub in found_subdomains:
+                    f.write(f"{sub}\n")
+            
+            # Run naabu
+            from modules.probing import run_naabu
+            open_ports = run_naabu(naabu_input, naabu_output)
+            print(f"[+] Found {len(open_ports)} hosts with open ports.")
         else:
             print("[-] No subdomains found.")
         
