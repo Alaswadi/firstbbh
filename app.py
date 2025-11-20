@@ -47,7 +47,7 @@ def index():
 def new_scan():
     if request.method == 'POST':
         domain = request.form.get('domain')
-        scan_type = request.form.get('scan_type', 'full')
+        scan_type = request.form.get('scan_type', 'standard')
         tools = request.form.getlist('tools')
         
         if not domain:
@@ -73,6 +73,31 @@ def view_results(scan_id):
     
     # Get detailed results
     stats = get_scan_statistics(scan_id)
+    subdomains = get_subdomains_by_scan(scan_id)[:100]
+    live_hosts = get_live_hosts(scan_id)[:100]
+    urls = get_urls(scan_id)[:100]
+    open_ports = get_open_ports(scan_id)[:100]
+    
+    # Parse tools from JSON string
+    if scan.get('tools'):
+        try:
+            scan['tools'] = json.loads(scan['tools'])
+        except:
+            scan['tools'] = []
+    
+    return render_template('results.html', 
+                         scan=scan, 
+                         stats=stats,
+                         subdomains=subdomains,
+                         live_hosts=live_hosts,
+                         urls=urls,
+                         open_ports=open_ports)
+
+@app.route('/api/scans')
+def api_scans():
+    """API endpoint to get all scans."""
+    scans = get_all_scans(limit=100)
+    return jsonify(scans)
 
 @app.route('/api/scan/<int:scan_id>')
 def api_scan(scan_id):
@@ -188,4 +213,3 @@ def run_tool_on_hosts(scan_id):
 if __name__ == '__main__':
     # Listen on 0.0.0.0 to allow external access (e.g., from VPS)
     app.run(debug=True, port=5050, host='0.0.0.0')
-
