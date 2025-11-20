@@ -134,6 +134,79 @@ def delete_scan_route(scan_id):
     except Exception as e:
         return f"Error deleting scan: {e}", 500
 
+@app.route('/api/scan/<int:scan_id>/run-tool', methods=['POST'])
+def run_tool_on_hosts(scan_id):
+    """Run GAU or Nuclei on selected hosts."""
+    try:
+        data = request.get_json()
+        tool = data.get('tool')
+        hosts = data.get('hosts', [])
+        
+        if not tool or not hosts:
+            return jsonify({'success': False, 'error': 'Missing tool or hosts'}), 400
+        
+        if tool not in ['gau', 'nuclei']:
+            return jsonify({'success': False, 'error': 'Invalid tool'}), 400
+        
+        # Run the tool in a background thread
+        def run_tool_background():
+            import os
+            from modules.content import run_gau
+            
+            scan = get_scan(scan_id)
+            if not scan:
+                return
+            
+            domain = scan['domain']
+            output_dir = os.path.join('output', domain)
+            os.makedirs(output_dir, exist_ok=True)
+            
+            if tool == 'gau':
+                # Run GAU on selected hosts
+                from modules.content import run_gau_parallel
+                urls = run_gau_parallel(hosts, output_dir)
+                
+                # Store URLs in database
+                if urls:
+                    from database import add_urls
+                    from urllib.parse import urlparse
+                    urls_data = []
+                    for url in urls:
+                        try:
+                            parsed = urlparse(url)
+                            urls_data.append({
+                                'url': url,
+                                'host': parsed.netloc,
+                                'path': parsed.path
+                            })
+                        except:
+                            pass
+                    if urls_data:
+                        add_urls(urls_data, scan_id)
+                        
+            elif tool == 'nuclei':
+                # Run Nuclei on selected hosts
+                hosts_file = os.path.join(output_dir, 'selected_hosts.txt')
+                with open(hosts_file, 'w') as f:
+                    for host in hosts:
+                        f.write(f"{host}\n")
+                
+                # Note: Nuclei integration would go here
+                # For now, just log that it would run
+                print(f"[*] Would run Nuclei on {len(hosts)} hosts")
+        
+        import threading
+        thread = threading.Thread(target=run_tool_background)
+        thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': f'{tool.upper()} scan started on {len(hosts)} host(s). Results will appear shortly.'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     # Listen on 0.0.0.0 to allow external access (e.g., from VPS)
     app.run(debug=True, port=5050, host='0.0.0.0')

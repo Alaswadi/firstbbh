@@ -58,9 +58,37 @@
                             <th>Live Hosts</th>
                             <th>URLs</th>
                             <th>Started</th>
-                            <div class="alert alert-info">No scans found. Start a new one!</div>
-                            {% endif %}
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scan in scans %}
+                        <tr>
+                            <td>{{ scan.id }}</td>
+                            <td>{{ scan.domain }}</td>
+                            <td>{{ 'Standard' if scan.scan_type == 'standard' else scan.scan_type.title() }}</td>
+                            <td class="status-{{ scan.status }}">{{ scan.status }}</td>
+                            <td>{{ scan.stats.subdomains_count if scan.stats else 0 }}</td>
+                            <td>{{ scan.stats.live_hosts_count if scan.stats else 0 }}</td>
+                            <td>{{ scan.stats.urls_count if scan.stats else 0 }}</td>
+                            <td>{{ scan.start_time[:16] if scan.start_time else 'N/A' }}</td>
+                            <td>
+                                <a href="/results/{{ scan.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <form action="/scan/{{ scan.id }}/delete" method="POST" style="display: inline;"
+                                    onsubmit="return confirm('Are you sure you want to delete this scan and all its data?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">No scans found. Start a new one!</div>
+        {% endif %}
+    </div>
 </body>
 
 </html>
