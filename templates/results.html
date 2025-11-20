@@ -53,25 +53,10 @@
         }
 
         .tech-badge {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             margin: 2px;
-            padding: 4px 8px;
-        }
-
-        .status-success {
-            color: #28a745;
-        }
-
-        .status-redirect {
-            color: #17a2b8;
-        }
-
-        .status-client-error {
-            color: #ffc107;
-        }
-
-        .status-server-error {
-            color: #dc3545;
+            padding: 3px 7px;
+            display: inline-block;
         }
 
         .host-row {
@@ -206,7 +191,10 @@
                                 </td>
                                 <td>
                                     {% if host.tech_stack %}
+                                    {% if host.tech_stack.startswith('[') %}
+                                    {# JSON array format #}
                                     {% set techs = host.tech_stack|from_json %}
+                                    {% if techs and techs|length > 0 %}
                                     {% for tech in techs[:5] %}
                                     <span class="badge bg-primary tech-badge">{{ tech }}</span>
                                     {% endfor %}
@@ -214,7 +202,14 @@
                                     <span class="badge bg-secondary tech-badge">+{{ techs|length - 5 }}</span>
                                     {% endif %}
                                     {% else %}
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted small">-</span>
+                                    {% endif %}
+                                    {% else %}
+                                    {# Plain text format #}
+                                    <span class="badge bg-primary tech-badge">{{ host.tech_stack }}</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted small">-</span>
                                     {% endif %}
                                 </td>
                             </tr>
