@@ -20,6 +20,10 @@
             max-height: 300px;
             overflow-y: auto;
         }
+
+        .badge-status {
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 
@@ -32,31 +36,45 @@
     </nav>
 
     <div class="container">
-        <h2 class="mb-4">Results for {{ scan.domain }}</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Results for {{ scan.domain }}</h2>
+            <span
+                class="badge {% if scan.status == 'Completed' %}bg-success{% elif scan.status == 'Running' %}bg-primary{% else %}bg-danger{% endif %} badge-status">
+                {{ scan.status }}
+            </span>
+        </div>
 
         <div class="row">
             <!-- Summary Stats -->
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body">
-                        <h5 class="card-title">New Subdomains</h5>
-                        <p class="display-4 text-primary">{{ scan.results.new_subdomains|length }}</p>
+                        <h5 class="card-title">Subdomains</h5>
+                        <p class="display-4 text-primary">{{ stats.subdomains_count }}</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body">
                         <h5 class="card-title">Live Hosts</h5>
-                        <p class="display-4 text-success">{{ scan.results.live_hosts|length }}</p>
+                        <p class="display-4 text-success">{{ stats.live_hosts_count }}</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body">
-                        <h5 class="card-title">URLs Found</h5>
-                        <p class="display-4 text-info">{{ scan.results.urls|length }}</p>
+                        <h5 class="card-title">URLs</h5>
+                        <p class="display-4 text-info">{{ stats.urls_count }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">JS Files</h5>
+                        <p class="display-4 text-warning">{{ stats.js_files_count }}</p>
                     </div>
                 </div>
             </div>
@@ -66,13 +84,13 @@
             <!-- Subdomains List -->
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header bg-primary text-white">New Subdomains</div>
+                    <div class="card-header bg-primary text-white">Subdomains (showing first 100)</div>
                     <div class="card-body scrollable-list">
                         <ul class="list-group list-group-flush">
-                            {% for sub in scan.results.new_subdomains %}
-                            <li class="list-group-item">{{ sub }}</li>
+                            {% for sub in subdomains %}
+                            <li class="list-group-item">{{ sub.subdomain }}</li>
                             {% else %}
-                            <li class="list-group-item text-muted">No new subdomains found.</li>
+                            <li class="list-group-item text-muted">No subdomains found.</li>
                             {% endfor %}
                         </ul>
                     </div>
@@ -82,11 +100,16 @@
             <!-- Live Hosts List -->
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header bg-success text-white">Live Hosts</div>
+                    <div class="card-header bg-success text-white">Live Hosts (showing first 100)</div>
                     <div class="card-body scrollable-list">
                         <ul class="list-group list-group-flush">
-                            {% for host in scan.results.live_hosts %}
-                            <li class="list-group-item"><a href="{{ host }}" target="_blank">{{ host }}</a></li>
+                            {% for host in live_hosts %}
+                            <li class="list-group-item">
+                                <a href="{{ host.url }}" target="_blank">{{ host.url }}</a>
+                                {% if host.status_code %}
+                                <span class="badge bg-secondary">{{ host.status_code }}</span>
+                                {% endif %}
+                            </li>
                             {% else %}
                             <li class="list-group-item text-muted">No live hosts found.</li>
                             {% endfor %}
@@ -98,18 +121,55 @@
             <!-- URLs List -->
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header bg-info text-white">URLs</div>
+                    <div class="card-header bg-info text-white">URLs (showing first 100)</div>
                     <div class="card-body scrollable-list">
                         <ul class="list-group list-group-flush">
-                            {% for url in scan.results.urls[:100] %}
-                            <li class="list-group-item text-truncate" title="{{ url }}"><a href="{{ url }}"
-                                    target="_blank">{{ url }}</a></li>
+                            {% for url_item in urls %}
+                            <li class="list-group-item text-truncate" title="{{ url_item.url }}">
+                                <a href="{{ url_item.url }}" target="_blank">{{ url_item.url }}</a>
+                            </li>
+                            {% else %}
+                            <li class="list-group-item text-muted">No URLs found.</li>
                             {% endfor %}
-                            {% if scan.results.urls|length > 100 %}
-                            <li class="list-group-item text-center text-muted">... and {{ scan.results.urls|length - 100
-                                }} more ...</li>
-                            {% endif %}
                         </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">Scan Information</div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Scan ID:</th>
+                                <td>{{ scan.id }}</td>
+                            </tr>
+                            <tr>
+                                <th>Domain:</th>
+                                <td>{{ scan.domain }}</td>
+                            </tr>
+                            <tr>
+                                <th>Scan Type:</th>
+                                <td>{{ scan.scan_type }}</td>
+                            </tr>
+                            <tr>
+                                <th>Started:</th>
+                                <td>{{ scan.start_time }}</td>
+                            </tr>
+                            <tr>
+                                <th>Completed:</th>
+                                <td>{{ scan.end_time or 'In Progress' }}</td>
+                            </tr>
+                            {% if scan.tools %}
+                            <tr>
+                                <th>Tools:</th>
+                                <td>{{ scan.tools|join(', ') }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
                     </div>
                 </div>
             </div>
