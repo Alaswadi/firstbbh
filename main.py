@@ -55,15 +55,6 @@ def main():
             # Clean host for display or other tools if needed, but gau handles URLs fine.
             # We won't write per-host files anymore.
             
-            urls = run_gau(host, None) # Modified run_gau to accept None for output file if we want to capture return only?
-            # Wait, run_gau currently requires an output file. 
-            # Let's just run gau and append to our list, or use a temp file.
-            # Actually, let's update run_gau to be more flexible, but for now let's just use a temporary list.
-            
-            # To avoid changing run_gau signature too much in this step, let's just pass a temp filename or handle it.
-            # But wait, run_gau in modules/content.py writes to file.
-            # Let's modify run_gau in the next step to return output if no file is provided, or just read the file.
-            
             # For now, let's define a single output file for ALL URLs
             all_urls_file = os.path.join(domain_output_dir, "all_urls.txt")
             
