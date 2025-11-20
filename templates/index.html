@@ -74,6 +74,10 @@
                             <td>{{ scan.start_time[:16] if scan.start_time else 'N/A' }}</td>
                             <td>
                                 <a href="/results/{{ scan.id }}" class="btn btn-sm btn-outline-primary">View</a>
+                                <form action="/scan/{{ scan.id }}/delete" method="POST" style="display: inline;"
+                                    onsubmit="return confirm('Are you sure you want to delete this scan and all its data?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
                             </td>
                         </tr>
                         {% endfor %}

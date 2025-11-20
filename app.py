@@ -12,7 +12,8 @@ from database import (
     get_subdomains_by_scan,
     get_live_hosts,
     get_urls,
-    migrate_from_json
+    migrate_from_json,
+    delete_scan
 )
 
 app = Flask(__name__)
@@ -123,6 +124,15 @@ def api_scan_urls(scan_id):
     """API endpoint to get URLs from a scan."""
     urls = get_urls(scan_id)
     return jsonify(urls)
+
+@app.route('/scan/<int:scan_id>/delete', methods=['POST'])
+def delete_scan_route(scan_id):
+    """Delete a scan and redirect to home."""
+    try:
+        delete_scan(scan_id)
+        return redirect(url_for('index'))
+    except Exception as e:
+        return f"Error deleting scan: {e}", 500
 
 if __name__ == '__main__':
     # Listen on 0.0.0.0 to allow external access (e.g., from VPS)

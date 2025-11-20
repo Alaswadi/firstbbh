@@ -175,6 +175,24 @@ def get_scans_by_domain(domain):
         """, (domain,))
         return [dict(row) for row in cursor.fetchall()]
 
+def delete_scan(scan_id):
+    """Delete a scan and all its associated data."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Delete associated data first (due to foreign key constraints)
+        cursor.execute("DELETE FROM subdomains WHERE scan_id = ?", (scan_id,))
+        cursor.execute("DELETE FROM live_hosts WHERE scan_id = ?", (scan_id,))
+        cursor.execute("DELETE FROM urls WHERE scan_id = ?", (scan_id,))
+        cursor.execute("DELETE FROM js_files WHERE scan_id = ?", (scan_id,))
+        cursor.execute("DELETE FROM vulnerabilities WHERE scan_id = ?", (scan_id,))
+        
+        # Delete the scan itself
+        cursor.execute("DELETE FROM scans WHERE id = ?", (scan_id,))
+        
+        conn.commit()
+        return True
+
 # ==================== Subdomain Operations ====================
 
 def add_subdomains(subdomains, domain, scan_id, source="discovery"):
