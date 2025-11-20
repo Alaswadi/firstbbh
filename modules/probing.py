@@ -9,7 +9,7 @@ def run_naabu(host_list_file, output_file):
         TOOLS["naabu"],
         "-list", host_list_file,
         "-o", output_file,
-        "-top-ports", "100",  # Scan only top 100 important ports
+        "-tp", "100",  # Scan only top 100 important ports
         "-silent"
     ]
     try:
