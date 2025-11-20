@@ -4,11 +4,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import TOOLS, ENABLE_MULTITHREADING, MAX_WORKERS, BATCH_SIZE
 
 def run_naabu(host_list_file, output_file):
-    """Runs naabu to find open ports."""
+    """Runs naabu to find open ports on important ports only."""
     cmd = [
         TOOLS["naabu"],
         "-list", host_list_file,
         "-o", output_file,
+        "-top-ports", "100",  # Scan only top 100 important ports
         "-silent"
     ]
     try:

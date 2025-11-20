@@ -39,58 +39,18 @@
                                     placeholder="example.com" required>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Scan Type</label>
-                                <select class="form-select" name="scan_type" id="scan_type">
-                                    <option value="full">Full Scan (Discovery + Probing + Content)</option>
-                                    <option value="subdomain">Subdomain Discovery Only</option>
-                                    <option value="probing">Discovery + Probing</option>
-                                </select>
+                            <div class="alert alert-info">
+                                <strong>Scan Workflow:</strong>
+                                <ol class="mb-0">
+                                    <li>Subdomain Discovery (Subfinder)</li>
+                                    <li>Port Scanning - Important Ports Only (Naabu)</li>
+                                    <li>Web Server Probing (HTTPX)</li>
+                                </ol>
+                                <small class="text-muted">After the scan completes, you can run GAU and Nuclei on
+                                    selected hosts from the results page.</small>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label">Tools (Optional Selection)</label>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input tool-checkbox discovery-tool" type="checkbox"
-                                                name="tools" value="subfinder" id="tool-subfinder" checked>
-                                            <label class="form-check-label" for="tool-subfinder">Subfinder</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input tool-checkbox discovery-tool" type="checkbox"
-                                                name="tools" value="amass" id="tool-amass" checked>
-                                            <label class="form-check-label" for="tool-amass">Amass</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input tool-checkbox probing-tool" type="checkbox"
-                                                name="tools" value="naabu" id="tool-naabu" checked>
-                                            <label class="form-check-label" for="tool-naabu">Naabu</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input tool-checkbox probing-tool" type="checkbox"
-                                                name="tools" value="httpx" id="tool-httpx" checked>
-                                            <label class="form-check-label" for="tool-httpx">HTTPX</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-check">
-                                            <input class="form-check-input tool-checkbox content-tool" type="checkbox"
-                                                name="tools" value="gau" id="tool-gau" checked>
-                                            <label class="form-check-label" for="tool-gau">GAU</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input tool-checkbox content-tool" type="checkbox"
-                                                name="tools" value="nuclei" id="tool-nuclei" checked>
-                                            <label class="form-check-label" for="tool-nuclei">Nuclei</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <small class="text-muted">Tools are automatically selected based on scan type, but you
-                                    can customize the selection.</small>
-                            </div>
+                            <input type="hidden" name="scan_type" value="standard">
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-success btn-lg">Start Scan</button>
@@ -102,38 +62,6 @@
             </div>
         </div>
     </div>
-
-    <script>
-        // Update tool checkboxes based on scan type
-        document.getElementById('scan_type').addEventListener('change', function () {
-            const scanType = this.value;
-            const discoveryTools = document.querySelectorAll('.discovery-tool');
-            const probingTools = document.querySelectorAll('.probing-tool');
-            const contentTools = document.querySelectorAll('.content-tool');
-
-            // Reset all
-            document.querySelectorAll('.tool-checkbox').forEach(cb => {
-                cb.checked = false;
-                cb.disabled = false;
-            });
-
-            // Enable and check based on scan type
-            if (scanType === 'full') {
-                // All tools enabled and checked
-                document.querySelectorAll('.tool-checkbox').forEach(cb => cb.checked = true);
-            } else if (scanType === 'subdomain') {
-                // Only discovery tools
-                discoveryTools.forEach(cb => cb.checked = true);
-                probingTools.forEach(cb => cb.disabled = true);
-                contentTools.forEach(cb => cb.disabled = true);
-            } else if (scanType === 'probing') {
-                // Discovery + probing tools
-                discoveryTools.forEach(cb => cb.checked = true);
-                probingTools.forEach(cb => cb.checked = true);
-                contentTools.forEach(cb => cb.disabled = true);
-            }
-        });
-    </script>
 </body>
 
 </html>

@@ -46,94 +46,60 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
     }
 
     try:
-        # 1. Discovery
-        if scan_type in ["full", "subdomain"]:
-            print("[*] Running Subdomain Discovery...")
+        # Standard workflow: Discovery → Port Scan → Probing
+        print("[*] Running Subdomain Discovery...")
+        
+        # Always use subfinder for discovery
+        found_subdomains = run_discovery(domain, domain_output_dir, ['subfinder'])
+        
+        # Store subdomains in database
+        print("[*] Storing subdomains in database...")
+        new_subdomains = update_subdomains(found_subdomains, domain, scan_id)
+        scan_results["new_subdomains"] = new_subdomains
+        
+        if found_subdomains:
+            print(f"[+] Found {len(found_subdomains)} total subdomains ({len(new_subdomains)} new).")
             
-            # Filter discovery tools from the tools list
-            discovery_tools = [t for t in (tools or []) if t in ['subfinder', 'amass']]
-            if not discovery_tools:
-                discovery_tools = None  # Use default (all tools)
+            if new_subdomains:
+                process_new_subdomains(new_subdomains)
             
-            found_subdomains = run_discovery(domain, domain_output_dir, discovery_tools)
+            # Port scanning with Naabu (important ports only)
+            print(f"[*] Scanning important ports on {len(found_subdomains)} subdomains...")
+            naabu_input = os.path.join(domain_output_dir, "subdomains.txt")
+            naabu_output = os.path.join(domain_output_dir, "open_ports.txt")
             
-            # 2. Diffing / Storage Update
-            print("[*] Checking for new subdomains...")
-            new_subdomains = update_subdomains(found_subdomains, domain, scan_id)
-            scan_results["new_subdomains"] = new_subdomains
+            # Write subdomains to file for naabu
+            with open(naabu_input, 'w') as f:
+                for sub in found_subdomains:
+                    f.write(f"{sub}\n")
             
-            if found_subdomains:
-                print(f"[+] Found {len(found_subdomains)} total subdomains ({len(new_subdomains)} new).")
-                
-                if new_subdomains:
-                    process_new_subdomains(new_subdomains)
-                
-                # 3. Probing (on ALL found subdomains, not just new ones)
-                if scan_type in ["full", "probing"]:
-                    print(f"[*] Probing {len(found_subdomains)} subdomains for web servers...")
-                    live_hosts_file = os.path.join(domain_output_dir, "live_hosts.txt")
-                    
-                    # Use batch processing with multithreading on ALL found subdomains
-                    live_hosts = run_httpx_batch(found_subdomains, live_hosts_file)
-                    scan_results["live_hosts"] = live_hosts
-                    print(f"[+] Found {len(live_hosts)} live hosts.")
-                    
-                    # Store live hosts in database
-                    if live_hosts:
-                        hosts_data = []
-                        for url in live_hosts:
-                            # Extract subdomain from URL
-                            subdomain = url.replace('http://', '').replace('https://', '').split('/')[0]
-                            hosts_data.append({
-                                'url': url,
-                                'subdomain': subdomain
-                            })
-                        add_live_hosts(hosts_data, scan_id)
-                    
-                    # 4. Content Discovery & JS Monitoring
-                    if scan_type == "full" and live_hosts:
-                        print("[*] Gathering URLs and JS files...")
-                        
-                        # Use parallel URL gathering
-                        all_urls = run_gau_parallel(live_hosts, domain_output_dir)
-                        
-                        # Save all URLs to file
-                        all_urls_file = os.path.join(domain_output_dir, "all_urls.txt")
-                        with open(all_urls_file, 'w') as f:
-                            for url in all_urls:
-                                f.write(f"{url}\n")
-                        
-                        scan_results["urls"] = all_urls
-                        print(f"[+] Found {len(all_urls)} URLs. Saved to all_urls.txt")
-                        
-                        # Store URLs in database
-                        if all_urls:
-                            urls_data = []
-                            for url in all_urls:
-                                try:
-                                    from urllib.parse import urlparse
-                                    parsed = urlparse(url)
-                                    urls_data.append({
-                                        'url': url,
-                                        'host': parsed.netloc,
-                                        'path': parsed.path
-                                    })
-                                except:
-                                    pass
-                            if urls_data:
-                                add_urls(urls_data, scan_id)
-                        
-                        # Filter and monitor JS files
-                        js_urls = [u for u in all_urls if u.endswith(".js")]
-                        if js_urls:
-                            print(f"[*] Monitoring {len(js_urls)} JS files...")
-                            monitor_js(list(set(js_urls)))
-                            
-                            # Store JS files in database
-                            js_data = [{'url': js_url} for js_url in js_urls]
-                            add_js_files(js_data, scan_id)
-            else:
-                print("[-] No subdomains found.")
+            # Run naabu
+            from modules.probing import run_naabu
+            open_ports = run_naabu(naabu_input, naabu_output)
+            print(f"[+] Found {len(open_ports)} hosts with open ports.")
+            
+            # Web server probing with HTTPX
+            print(f"[*] Probing {len(found_subdomains)} subdomains for web servers...")
+            live_hosts_file = os.path.join(domain_output_dir, "live_hosts.txt")
+            
+            # Use batch processing with multithreading
+            live_hosts = run_httpx_batch(found_subdomains, live_hosts_file)
+            scan_results["live_hosts"] = live_hosts
+            print(f"[+] Found {len(live_hosts)} live web servers.")
+            
+            # Store live hosts in database
+            if live_hosts:
+                hosts_data = []
+                for url in live_hosts:
+                    # Extract subdomain from URL
+                    subdomain = url.replace('http://', '').replace('https://', '').split('/')[0]
+                    hosts_data.append({
+                        'url': url,
+                        'subdomain': subdomain
+                    })
+                add_live_hosts(hosts_data, scan_id)
+        else:
+            print("[-] No subdomains found.")
         
         # Update scan status to completed
         update_scan_status(scan_id, 'Completed')
