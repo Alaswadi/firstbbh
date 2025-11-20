@@ -62,17 +62,19 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
             new_subdomains = update_subdomains(found_subdomains, domain, scan_id)
             scan_results["new_subdomains"] = new_subdomains
             
-            if new_subdomains:
-                print(f"[+] Found {len(new_subdomains)} new subdomains.")
-                process_new_subdomains(new_subdomains)
+            if found_subdomains:
+                print(f"[+] Found {len(found_subdomains)} total subdomains ({len(new_subdomains)} new).")
                 
-                # 3. Probing (only on new assets for efficiency)
+                if new_subdomains:
+                    process_new_subdomains(new_subdomains)
+                
+                # 3. Probing (on ALL found subdomains, not just new ones)
                 if scan_type in ["full", "probing"]:
-                    print("[*] Probing new assets for web servers...")
+                    print(f"[*] Probing {len(found_subdomains)} subdomains for web servers...")
                     live_hosts_file = os.path.join(domain_output_dir, "live_hosts.txt")
                     
-                    # Use batch processing with multithreading
-                    live_hosts = run_httpx_batch(new_subdomains, live_hosts_file)
+                    # Use batch processing with multithreading on ALL found subdomains
+                    live_hosts = run_httpx_batch(found_subdomains, live_hosts_file)
                     scan_results["live_hosts"] = live_hosts
                     print(f"[+] Found {len(live_hosts)} live hosts.")
                     
@@ -131,7 +133,7 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
                             js_data = [{'url': js_url} for js_url in js_urls]
                             add_js_files(js_data, scan_id)
             else:
-                print("[-] No new subdomains found.")
+                print("[-] No subdomains found.")
         
         # Update scan status to completed
         update_scan_status(scan_id, 'Completed')
