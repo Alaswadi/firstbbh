@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Results - {{ scan.domain }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .scrollable-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">BBH Automation</a>
+            <a href="/" class="btn btn-outline-light btn-sm">Back to Dashboard</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 class="mb-4">Results for {{ scan.domain }}</h2>
+
+        <div class="row">
+            <!-- Summary Stats -->
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">New Subdomains</h5>
+                        <p class="display-4 text-primary">{{ scan.results.new_subdomains|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">Live Hosts</h5>
+                        <p class="display-4 text-success">{{ scan.results.live_hosts|length }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <h5 class="card-title">URLs Found</h5>
+                        <p class="display-4 text-info">{{ scan.results.urls|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Subdomains List -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">New Subdomains</div>
+                    <div class="card-body scrollable-list">
+                        <ul class="list-group list-group-flush">
+                            {% for sub in scan.results.new_subdomains %}
+                            <li class="list-group-item">{{ sub }}</li>
+                            {% else %}
+                            <li class="list-group-item text-muted">No new subdomains found.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Hosts List -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-success text-white">Live Hosts</div>
+                    <div class="card-body scrollable-list">
+                        <ul class="list-group list-group-flush">
+                            {% for host in scan.results.live_hosts %}
+                            <li class="list-group-item"><a href="{{ host }}" target="_blank">{{ host }}</a></li>
+                            {% else %}
+                            <li class="list-group-item text-muted">No live hosts found.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- URLs List -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">URLs</div>
+                    <div class="card-body scrollable-list">
+                        <ul class="list-group list-group-flush">
+                            {% for url in scan.results.urls[:100] %}
+                            <li class="list-group-item text-truncate" title="{{ url }}"><a href="{{ url }}"
+                                    target="_blank">{{ url }}</a></li>
+                            {% endfor %}
+                            {% if scan.results.urls|length > 100 %}
+                            <li class="list-group-item text-center text-muted">... and {{ scan.results.urls|length - 100
+                                }} more ...</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
