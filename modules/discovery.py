@@ -44,45 +44,70 @@ def run_amass(domain, output_file):
         print("Amass not found. Please ensure it is installed and in your PATH.")
     return []
 
-def run_discovery(domain, output_dir):
+def run_discovery(domain, output_dir, tools=None):
     """
-    Runs all discovery tools and aggregates results.
+    Runs discovery tools and aggregates results.
     Uses multithreading if enabled in config.
+    
+    Args:
+        domain: Target domain
+        output_dir: Directory to save output files
+        tools: List of tools to run (e.g., ['subfinder', 'amass']). If None, runs all.
     """
     if ENABLE_MULTITHREADING:
-        return run_discovery_parallel(domain, output_dir)
+        return run_discovery_parallel(domain, output_dir, tools)
     else:
-        return run_discovery_sequential(domain, output_dir)
+        return run_discovery_sequential(domain, output_dir, tools)
 
-def run_discovery_sequential(domain, output_dir):
+def run_discovery_sequential(domain, output_dir, tools=None):
     """Sequential execution of discovery tools."""
-    subfinder_out = os.path.join(output_dir, f"{domain}_subfinder.txt")
-    amass_out = os.path.join(output_dir, f"{domain}_amass.txt")
+    if tools is None:
+        tools = ['subfinder', 'amass']
     
     print(f"[*] Starting sequential discovery for {domain}...")
+    print(f"[*] Selected tools: {', '.join(tools)}")
     
     all_subs = []
     
-    # Run Subfinder
-    print("[*] Running subfinder...")
-    subs = run_subfinder(domain, subfinder_out)
-    all_subs.extend(subs)
+    # Run Subfinder if selected
+    if 'subfinder' in tools:
+        subfinder_out = os.path.join(output_dir, f"{domain}_subfinder.txt")
+        print("[*] Running subfinder...")
+        subs = run_subfinder(domain, subfinder_out)
+        all_subs.extend(subs)
     
-    # Run Amass
-    print("[*] Running amass...")
-    subs = run_amass(domain, amass_out)
-    all_subs.extend(subs)
+    # Run Amass if selected
+    if 'amass' in tools:
+        amass_out = os.path.join(output_dir, f"{domain}_amass.txt")
+        print("[*] Running amass...")
+        subs = run_amass(domain, amass_out)
+        all_subs.extend(subs)
     
     return list(set(all_subs))
 
-def run_discovery_parallel(domain, output_dir):
+def run_discovery_parallel(domain, output_dir, tools=None):
     """Parallel execution of discovery tools using ThreadPoolExecutor."""
-    print(f"[*] Starting parallel discovery for {domain}...")
+    if tools is None:
+        tools = ['subfinder', 'amass']
     
-    tools_to_run = [
-        ("subfinder", run_subfinder, os.path.join(output_dir, f"{domain}_subfinder.txt")),
-        ("amass", run_amass, os.path.join(output_dir, f"{domain}_amass.txt"))
-    ]
+    print(f"[*] Starting parallel discovery for {domain}...")
+    print(f"[*] Selected tools: {', '.join(tools)}")
+    
+    # Build list of tools to run based on selection
+    available_tools = {
+        'subfinder': (run_subfinder, os.path.join(output_dir, f"{domain}_subfinder.txt")),
+        'amass': (run_amass, os.path.join(output_dir, f"{domain}_amass.txt"))
+    }
+    
+    tools_to_run = []
+    for tool_name in tools:
+        if tool_name in available_tools:
+            tool_func, output_file = available_tools[tool_name]
+            tools_to_run.append((tool_name, tool_func, output_file))
+    
+    if not tools_to_run:
+        print("[!] No valid discovery tools selected")
+        return []
     
     all_subs = []
     

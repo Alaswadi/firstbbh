@@ -49,7 +49,13 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
         # 1. Discovery
         if scan_type in ["full", "subdomain"]:
             print("[*] Running Subdomain Discovery...")
-            found_subdomains = run_discovery(domain, domain_output_dir)
+            
+            # Filter discovery tools from the tools list
+            discovery_tools = [t for t in (tools or []) if t in ['subfinder', 'amass']]
+            if not discovery_tools:
+                discovery_tools = None  # Use default (all tools)
+            
+            found_subdomains = run_discovery(domain, domain_output_dir, discovery_tools)
             
             # 2. Diffing / Storage Update
             print("[*] Checking for new subdomains...")
