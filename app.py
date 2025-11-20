@@ -19,6 +19,18 @@ from database import (
 
 app = Flask(__name__)
 
+# Add JSON parsing filter for templates
+import json as json_module
+@app.template_filter('from_json')
+def from_json_filter(value):
+    """Parse JSON string to Python object."""
+    if not value:
+        return []
+    try:
+        return json_module.loads(value)
+    except:
+        return []
+
 # Initialize database
 init_db()
 

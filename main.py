@@ -68,20 +68,28 @@ def run_scan(domain, scan_type="full", tools=None, scan_id=None):
             live_hosts_file = os.path.join(domain_output_dir, "live_hosts.txt")
             
             # Use batch processing with multithreading
-            live_hosts = run_httpx_batch(found_subdomains, live_hosts_file)
-            scan_results["live_hosts"] = live_hosts
-            print(f"[+] Found {len(live_hosts)} live web servers.")
+            live_hosts_data = run_httpx_batch(found_subdomains, live_hosts_file)
+            scan_results["live_hosts"] = [host.get('url') for host in live_hosts_data if host.get('url')]
+            print(f"[+] Found {len(live_hosts_data)} live web servers.")
             
-            # Store live hosts in database
-            if live_hosts:
+            # Store live hosts in database with detailed information
+            if live_hosts_data:
+                from database import add_live_hosts
+                import json
                 hosts_data = []
-                for url in live_hosts:
-                    # Extract subdomain from URL
-                    subdomain = url.replace('http://', '').replace('https://', '').split('/')[0]
-                    hosts_data.append({
-                        'url': url,
-                        'subdomain': subdomain
-                    })
+                for host_info in live_hosts_data:
+                    url = host_info.get('url', '')
+                    if url:
+                        # Extract subdomain from URL
+                        subdomain = url.replace('http://', '').replace('https://', '').split('/')[0]
+                        hosts_data.append({
+                            'url': url,
+                            'subdomain': subdomain,
+                            'status_code': host_info.get('status_code'),
+                            'title': host_info.get('title', ''),
+                            'tech_stack': json.dumps(host_info.get('tech', [])) if host_info.get('tech') else None,
+                            'content_length': host_info.get('content_length', 0)
+                        })
                 add_live_hosts(hosts_data, scan_id)
             
             # Port scanning with Naabu (last step, important ports only)

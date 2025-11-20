@@ -6,244 +6,362 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan Results - {{ scan.domain }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            border: none;
+            border-radius: 10px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            opacity: 0.8;
+        }
+
+        .data-table {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            padding: 15px;
+        }
+
+        .tech-badge {
+            font-size: 0.75rem;
+            margin: 2px;
+            padding: 4px 8px;
+        }
+
+        .status-success {
+            color: #28a745;
+        }
+
+        .status-redirect {
+            color: #17a2b8;
+        }
+
+        .status-client-error {
+            color: #ffc107;
+        }
+
+        .status-server-error {
+            color: #dc3545;
+        }
+
+        .host-row {
+            transition: background-color 0.2s;
+        }
+
+        .host-row:hover {
             background-color: #f8f9fa;
         }
 
-        .card {
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .navbar-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        .scrollable-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .badge-status {
-            font-size: 0.9rem;
+        .action-buttons {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
         }
     </style>
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-dark navbar-custom mb-4">
         <div class="container">
-            <a class="navbar-brand" href="/">BBH Automation</a>
-            <a href="/" class="btn btn-outline-light btn-sm">Back to Dashboard</a>
+            <a class="navbar-brand" href="/"><i class="bi bi-shield-check"></i> BBH Automation</a>
+            <a href="/" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container main-container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Results for {{ scan.domain }}</h2>
+            <h2><i class="bi bi-globe"></i> {{ scan.domain }}</h2>
             <span
-                class="badge {% if scan.status == 'Completed' %}bg-success{% elif scan.status == 'Running' %}bg-primary{% else %}bg-danger{% endif %} badge-status">
+                class="badge {% if scan.status == 'Completed' %}bg-success{% elif scan.status == 'Running' %}bg-primary{% else %}bg-danger{% endif %} fs-6">
                 {{ scan.status }}
             </span>
         </div>
 
         <!-- Summary Stats -->
-        <div class="row">
+        <div class="row g-3 mb-4">
             <div class="col-md-2">
-                <div class="card text-center">
+                <div class="card stat-card text-center border-primary">
                     <div class="card-body">
-                        <h6 class="card-title">Subdomains</h6>
-                        <p class="display-6 text-primary">{{ stats.subdomains_count }}</p>
+                        <i class="bi bi-diagram-3 stat-icon text-primary"></i>
+                        <h3 class="mt-2 mb-0">{{ stats.subdomains_count }}</h3>
+                        <small class="text-muted">Subdomains</small>
                     </div>
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="card text-center">
+                <div class="card stat-card text-center border-success">
                     <div class="card-body">
-                        <h6 class="card-title">Live Hosts</h6>
-                        <p class="display-6 text-success">{{ stats.live_hosts_count }}</p>
+                        <i class="bi bi-check-circle stat-icon text-success"></i>
+                        <h3 class="mt-2 mb-0">{{ stats.live_hosts_count }}</h3>
+                        <small class="text-muted">Live Hosts</small>
                     </div>
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="card text-center">
+                <div class="card stat-card text-center border-danger">
                     <div class="card-body">
-                        <h6 class="card-title">Open Ports</h6>
-                        <p class="display-6 text-danger">{{ stats.open_ports_count }}</p>
+                        <i class="bi bi-door-open stat-icon text-danger"></i>
+                        <h3 class="mt-2 mb-0">{{ stats.open_ports_count }}</h3>
+                        <small class="text-muted">Open Ports</small>
                     </div>
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="card text-center">
+                <div class="card stat-card text-center border-info">
                     <div class="card-body">
-                        <h6 class="card-title">URLs</h6>
-                        <p class="display-6 text-info">{{ stats.urls_count }}</p>
+                        <i class="bi bi-link-45deg stat-icon text-info"></i>
+                        <h3 class="mt-2 mb-0">{{ stats.urls_count }}</h3>
+                        <small class="text-muted">URLs</small>
                     </div>
                 </div>
             </div>
             <div class="col-md-2">
-                <div class="card text-center">
+                <div class="card stat-card text-center border-warning">
                     <div class="card-body">
-                        <h6 class="card-title">JS Files</h6>
-                        <p class="display-6 text-warning">{{ stats.js_files_count }}</p>
+                        <i class="bi bi-file-code stat-icon text-warning"></i>
+                        <h3 class="mt-2 mb-0">{{ stats.js_files_count }}</h3>
+                        <small class="text-muted">JS Files</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Data Lists -->
-        <div class="row">
-            <!-- Subdomains List -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">Subdomains (first 100)</div>
-                    <div class="card-body scrollable-list">
-                        <ul class="list-group list-group-flush">
-                            {% for sub in subdomains %}
-                            <li class="list-group-item">{{ sub.subdomain }}</li>
-                            {% else %}
-                            <li class="list-group-item text-muted">No subdomains found.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
+        <!-- Live Hosts Table -->
+        <div class="card data-table mb-4">
+            <div class="table-header">
+                <i class="bi bi-server"></i> Live Web Servers
             </div>
-
-            <!-- Live Hosts List with Checkboxes -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-success text-white">Live Hosts (first 100)</div>
-                    <div class="card-body scrollable-list">
-                        <ul class="list-group list-group-flush">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40"><input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
+                                <th>URL</th>
+                                <th width="80">Status</th>
+                                <th>Title</th>
+                                <th>Technologies</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                             {% for host in live_hosts %}
-                            <li class="list-group-item">
-                                <div class="form-check">
-                                    <input class="form-check-input host-checkbox" type="checkbox" value="{{ host.url }}"
-                                        id="host-{{ loop.index }}">
-                                    <label class="form-check-label" for="host-{{ loop.index }}" style="width: 100%;">
-                                        <a href="{{ host.url }}" target="_blank">{{ host.url }}</a>
-                                        {% if host.status_code %}
-                                        <span class="badge bg-secondary">{{ host.status_code }}</span>
-                                        {% endif %}
-                                    </label>
-                                </div>
-                            </li>
+                            <tr class="host-row">
+                                <td><input type="checkbox" class="host-checkbox" value="{{ host.url }}"></td>
+                                <td>
+                                    <a href="{{ host.url }}" target="_blank" class="text-decoration-none">
+                                        <i class="bi bi-box-arrow-up-right"></i> {{ host.url }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if host.status_code %}
+                                    <span class="badge 
+                                        {% if host.status_code >= 200 and host.status_code < 300 %}bg-success
+                                        {% elif host.status_code >= 300 and host.status_code < 400 %}bg-info
+                                        {% elif host.status_code >= 400 and host.status_code < 500 %}bg-warning
+                                        {% else %}bg-danger{% endif %}">
+                                        {{ host.status_code }}
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ host.title[:50] if host.title else 'No title'
+                                        }}</small>
+                                </td>
+                                <td>
+                                    {% if host.tech_stack %}
+                                    {% set techs = host.tech_stack|from_json %}
+                                    {% for tech in techs[:5] %}
+                                    <span class="badge bg-primary tech-badge">{{ tech }}</span>
+                                    {% endfor %}
+                                    {% if techs|length > 5 %}
+                                    <span class="badge bg-secondary tech-badge">+{{ techs|length - 5 }}</span>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
                             {% else %}
-                            <li class="list-group-item text-muted">No live hosts found.</li>
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No live hosts found</td>
+                            </tr>
                             {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Open Ports List -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-danger text-white">Open Ports (first 100)</div>
-                    <div class="card-body scrollable-list">
-                        <ul class="list-group list-group-flush">
-                            {% for port in open_ports %}
-                            <li class="list-group-item">
-                                <strong>{{ port.host }}</strong>:<span class="badge bg-danger">{{ port.port }}</span>
-                            </li>
-                            {% else %}
-                            <li class="list-group-item text-muted">No open ports found.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- URLs List -->
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-header bg-info text-white">URLs (first 100)</div>
-                    <div class="card-body scrollable-list">
-                        <ul class="list-group list-group-flush">
-                            {% for url_item in urls %}
-                            <li class="list-group-item text-truncate" title="{{ url_item.url }}">
-                                <a href="{{ url_item.url }}" target="_blank">{{ url_item.url }}</a>
-                            </li>
-                            {% else %}
-                            <li class="list-group-item text-muted">No URLs found.</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- On-Demand Scanning Section -->
+        <!-- Action Buttons -->
         {% if live_hosts %}
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="card border-warning">
-                    <div class="card-header bg-warning text-dark">
-                        <strong>🔧 On-Demand Scanning</strong>
-                    </div>
-                    <div class="card-body">
-                        <p class="mb-3">Select hosts from the list above and run additional scans:</p>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button class="btn btn-primary" onclick="runSelectedScan('gau')">
-                                📡 Run GAU on Selected Hosts
-                            </button>
-                            <button class="btn btn-danger" onclick="runSelectedScan('nuclei')">
-                                🐛 Run Nuclei on Selected Hosts
-                            </button>
-                            <button class="btn btn-secondary btn-sm" onclick="selectAllHosts()">Select All</button>
-                            <button class="btn btn-secondary btn-sm" onclick="deselectAllHosts()">Deselect All</button>
-                        </div>
-                        <div id="scan-status" class="mt-3"></div>
-                    </div>
-                </div>
+        <div class="action-buttons">
+            <h5><i class="bi bi-tools"></i> On-Demand Scanning</h5>
+            <p class="text-muted mb-3">Select hosts above and run additional scans</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary" onclick="runSelectedScan('gau')">
+                    <i class="bi bi-link-45deg"></i> Run GAU
+                </button>
+                <button class="btn btn-danger" onclick="runSelectedScan('nuclei')">
+                    <i class="bi bi-bug"></i> Run Nuclei
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="selectAllHosts()">Select All</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="deselectAllHosts()">Deselect All</button>
             </div>
+            <div id="scan-status" class="mt-3"></div>
         </div>
         {% endif %}
 
-        <!-- Scan Information -->
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">Scan Information</div>
-                    <div class="card-body">
-                        <table class="table table-sm">
-                            <tr>
-                                <th>Scan ID:</th>
-                                <td>{{ scan.id }}</td>
-                            </tr>
-                            <tr>
-                                <th>Domain:</th>
-                                <td>{{ scan.domain }}</td>
-                            </tr>
-                            <tr>
-                                <th>Scan Type:</th>
-                                <td>{{ 'Standard' if scan.scan_type == 'standard' else scan.scan_type.title() }}</td>
-                            </tr>
-                            <tr>
-                                <th>Started:</th>
-                                <td>{{ scan.start_time }}</td>
-                            </tr>
-                            <tr>
-                                <th>Completed:</th>
-                                <td>{{ scan.end_time or 'In Progress' }}</td>
-                            </tr>
-                            {% if scan.tools %}
-                            <tr>
-                                <th>Tools:</th>
-                                <td>{{ scan.tools|join(', ') }}</td>
-                            </tr>
-                            {% endif %}
-                        </table>
+        <!-- Tabbed Data View -->
+        <ul class="nav nav-tabs mt-4" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#subdomains"><i class="bi bi-diagram-3"></i>
+                    Subdomains</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#ports"><i class="bi bi-door-open"></i> Open Ports</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#urls"><i class="bi bi-link"></i> URLs</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#info"><i class="bi bi-info-circle"></i> Scan Info</a>
+            </li>
+        </ul>
+
+        <div class="tab-content p-3 border border-top-0 rounded-bottom">
+            <!-- Subdomains Tab -->
+            <div id="subdomains" class="tab-pane fade show active">
+                <div class="row">
+                    {% for sub in subdomains %}
+                    <div class="col-md-3 mb-2">
+                        <span class="badge bg-light text-dark border">{{ sub.subdomain }}</span>
                     </div>
+                    {% else %}
+                    <p class="text-muted">No subdomains found</p>
+                    {% endfor %}
                 </div>
+            </div>
+
+            <!-- Open Ports Tab -->
+            <div id="ports" class="tab-pane fade">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Host</th>
+                                <th>Port</th>
+                                <th>Protocol</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for port in open_ports %}
+                            <tr>
+                                <td>{{ port.host }}</td>
+                                <td><span class="badge bg-danger">{{ port.port }}</span></td>
+                                <td>{{ port.protocol }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-muted">No open ports found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- URLs Tab -->
+            <div id="urls" class="tab-pane fade">
+                <div class="list-group">
+                    {% for url_item in urls %}
+                    <a href="{{ url_item.url }}" target="_blank" class="list-group-item list-group-item-action">
+                        <i class="bi bi-link-45deg"></i> {{ url_item.url }}
+                    </a>
+                    {% else %}
+                    <p class="text-muted">No URLs found</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Scan Info Tab -->
+            <div id="info" class="tab-pane fade">
+                <table class="table">
+                    <tr>
+                        <th width="200">Scan ID</th>
+                        <td>{{ scan.id }}</td>
+                    </tr>
+                    <tr>
+                        <th>Domain</th>
+                        <td>{{ scan.domain }}</td>
+                    </tr>
+                    <tr>
+                        <th>Scan Type</th>
+                        <td>{{ 'Standard' if scan.scan_type == 'standard' else scan.scan_type.title() }}</td>
+                    </tr>
+                    <tr>
+                        <th>Started</th>
+                        <td>{{ scan.start_time }}</td>
+                    </tr>
+                    <tr>
+                        <th>Completed</th>
+                        <td>{{ scan.end_time or 'In Progress' }}</td>
+                    </tr>
+                </table>
             </div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function toggleAll(checkbox) {
+            document.querySelectorAll('.host-checkbox').forEach(cb => cb.checked = checkbox.checked);
+        }
+
         function selectAllHosts() {
             document.querySelectorAll('.host-checkbox').forEach(cb => cb.checked = true);
+            document.getElementById('select-all').checked = true;
         }
 
         function deselectAllHosts() {
             document.querySelectorAll('.host-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('select-all').checked = false;
         }
 
         function runSelectedScan(tool) {
@@ -256,7 +374,7 @@
             }
 
             const statusDiv = document.getElementById('scan-status');
-            statusDiv.innerHTML = `<div class="alert alert-info">Running ${tool.toUpperCase()} on ${selectedHosts.length} host(s)... This may take a while.</div>`;
+            statusDiv.innerHTML = `<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Running ${tool.toUpperCase()} on ${selectedHosts.length} host(s)...</div>`;
 
             fetch(`/api/scan/{{ scan.id }}/run-tool`, {
                 method: 'POST',
@@ -271,14 +389,14 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        statusDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                        statusDiv.innerHTML = `<div class="alert alert-success"><i class="bi bi-check-circle"></i> ${data.message}</div>`;
                         setTimeout(() => location.reload(), 2000);
                     } else {
-                        statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+                        statusDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ${data.error}</div>`;
                     }
                 })
                 .catch(error => {
-                    statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${error}</div>`;
+                    statusDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-x-circle"></i> Error: ${error}</div>`;
                 });
         }
     </script>

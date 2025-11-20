@@ -23,22 +23,41 @@ def run_naabu(host_list_file, output_file):
         print("Naabu not found.")
     return []
 
+
 def run_httpx(host_list_file, output_file):
-    """Runs httpx to find live web servers."""
+    """Runs httpx to find live web servers with detailed information."""
     cmd = [
         TOOLS["httpx"],
         "-l", host_list_file,
         "-o", output_file,
         "-silent",
-        "-title", "-tech-detect", "-status-code",
-        "-no-color"
+        "-title", "-tech-detect", "-status-code", "-content-length",
+        "-no-color",
+        "-json"  # Get JSON output for easier parsing
     ]
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        results = []
         if os.path.exists(output_file):
             with open(output_file, 'r') as f:
-                # Extract just the URL from the line (first item)
-                return [line.strip().split(' ')[0] for line in f if line.strip()]
+                import json
+                for line in f:
+                    if line.strip():
+                        try:
+                            data = json.loads(line.strip())
+                            results.append({
+                                'url': data.get('url', ''),
+                                'status_code': data.get('status_code'),
+                                'title': data.get('title', ''),
+                                'tech': data.get('tech', []),
+                                'content_length': data.get('content_length', 0)
+                            })
+                        except json.JSONDecodeError:
+                            # Fallback: just get the URL
+                            url = line.strip().split(' ')[0]
+                            if url:
+                                results.append({'url': url})
+        return results
     except subprocess.CalledProcessError as e:
         print(f"Error running httpx: {e}")
     except FileNotFoundError:
