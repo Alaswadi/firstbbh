@@ -27,5 +27,11 @@ TOOLS = {
 # Webhook URL for n8n or other alerting systems
 WEBHOOK_URL = os.getenv("BBH_WEBHOOK_URL", "")
 
-# Database File
-DB_FILE = os.path.join(DATA_DIR, "assets.json")
+# Database Files
+DB_FILE = os.path.join(DATA_DIR, "assets.json")  # Legacy JSON storage
+DB_PATH = os.path.join(DATA_DIR, "bbh_automation.db")  # SQLite database
+
+# Multithreading Configuration
+ENABLE_MULTITHREADING = True
+MAX_WORKERS = 5  # Number of threads for parallel execution
+BATCH_SIZE = 50  # Batch size for chunked processing
