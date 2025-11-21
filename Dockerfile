@@ -1,10 +1,15 @@
 FROM python:3.9-slim
 
+# Set environment variables to prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=UTC
+
 # Install system dependencies for the tools
 # Note: Many bug bounty tools are Go-based or require specific binaries.
 # We will install some common ones, but for a full setup, we might need to copy binaries 
 # or install Go. For this basic version, we assume python dependencies + basic tools.
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     git \
@@ -12,7 +17,9 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libpcap-dev \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Install Go (needed for subfinder, httpx, etc. if we install them from source)
 # Or we can download pre-built binaries. 
