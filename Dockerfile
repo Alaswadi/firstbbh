@@ -25,21 +25,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Or we can download pre-built binaries. 
 # For simplicity, let's assume the user will mount their tools or we install a few key ones.
 # Here is a basic setup installing tools from ProjectDiscovery (example)
-RUN go_version=1.21.0 && \
+RUN go_version=1.21.5 && \
     wget https://go.dev/dl/go$go_version.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go$go_version.linux-amd64.tar.gz && \
     rm go$go_version.linux-amd64.tar.gz
 
 ENV PATH=$PATH:/usr/local/go/bin:/root/go/bin
+ENV CGO_ENABLED=1
 
 # Install Subfinder, HTTPX, Naabu, Katana, Nuclei, GAU
 RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
-RUN go install -v github.com/projectdiscovery/naabu/v3/cmd/naabu@latest
+# Naabu installation - may fail on some systems, so we make it optional
+RUN go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest || echo "Naabu installation failed, skipping..."
 RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest
-RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
+RUN go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
 RUN go install -v github.com/lc/gau/v2/cmd/gau@latest
-RUN go install -v github.com/owasp-amass/amass/v3/...@master
+RUN go install -v github.com/owasp-amass/amass/v4/...@master
 
 WORKDIR /app
 
