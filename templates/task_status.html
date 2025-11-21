@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Status - Bug Bounty Automation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .task-id {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            font-family: monospace;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .status-value {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .state-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .state-pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .state-started {
+            background: #17a2b8;
+            color: #fff;
+        }
+
+        .state-progress {
+            background: #007bff;
+            color: #fff;
+        }
+
+        .state-success {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .state-failure {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .actions {
+            margin-top: 30px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Task Status</h1>
+        <div class="task-id">Task ID: {{ task_id }}</div>
+
+        <div id="status-container">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading task status...</p>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a href="/" class="btn btn-secondary">← Back to Home</a>
+            <button id="cancel-btn" class="btn btn-danger" style="display:none;">Cancel Task</button>
+            <a id="view-results-btn" href="#" class="btn btn-primary" style="display:none;">View Results</a>
+        </div>
+    </div>
+
+    <script>
+        const taskId = "{{ task_id }}";
+        let pollInterval;
+
+        function updateStatus() {
+            fetch(`/api/task/${taskId}/status`)
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('status-container');
+                    const cancelBtn = document.getElementById('cancel-btn');
+                    const viewResultsBtn = document.getElementById('view-results-btn');
+
+                    let stateClass = 'state-' + data.state.toLowerCase();
+                    let progressPercent = data.progress || 0;
+
+                    let html = `
+                        <div class="status-card">
+                            <div class="status-label">Status</div>
+                            <span class="state-badge ${stateClass}">${data.state}</span>
+                            <div class="status-value">${data.status || 'Processing...'}</div>
+                        </div>
+                    `;
+
+                    if (data.state === 'PROGRESS' || data.state === 'STARTED') {
+                        html += `
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progressPercent}%">
+                                    ${progressPercent}%
+                                </div>
+                            </div>
+                        `;
+                        cancelBtn.style.display = 'inline-block';
+                    }
+
+                    if (data.state === 'SUCCESS') {
+                        clearInterval(pollInterval);
+                        html += `
+                            <div class="status-card">
+                                <div class="status-label">✅ Task Completed Successfully!</div>
+                                ${data.scan_id ? `<div class="status-value">Scan ID: ${data.scan_id}</div>` : ''}
+                            </div>
+                        `;
+
+                        if (data.scan_id) {
+                            viewResultsBtn.href = `/results/${data.scan_id}`;
+                            viewResultsBtn.style.display = 'inline-block';
+                        }
+                        cancelBtn.style.display = 'none';
+                    }
+
+                    if (data.state === 'FAILURE') {
+                        clearInterval(pollInterval);
+                        html += `
+                            <div class="error-message">
+                                <strong>❌ Task Failed</strong><br>
+                                ${data.error || 'Unknown error occurred'}
+                            </div>
+                        `;
+                        cancelBtn.style.display = 'none';
+                    }
+
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error fetching task status:', error);
+                });
+        }
+
+        // Cancel task
+        document.getElementById('cancel-btn').addEventListener('click', function () {
+            if (confirm('Are you sure you want to cancel this task?')) {
+                fetch(`/api/task/${taskId}/cancel`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        alert(data.message);
+                        clearInterval(pollInterval);
+                        location.reload();
+                    })
+                    .catch(error => {
+                        console.error('Error cancelling task:', error);
+                        alert('Failed to cancel task');
+                    });
+            }
+        });
+
+        // Initial update
+        updateStatus();
+
+        // Poll every 2 seconds
+        pollInterval = setInterval(updateStatus, 2000);
+    </script>
+</body>
+
+</html>

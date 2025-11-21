@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcap-dev \
     gcc \
     ca-certificates \
+    # PostgreSQL client libraries
+    libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -50,12 +53,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Copy and set permissions for entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Expose the port
 EXPOSE 5050
 
-# Run the application with gunicorn for production
-# --bind 0.0.0.0:5050 - Listen on all interfaces on port 5050
-# --workers 2 - Use 2 worker processes
-# --timeout 120 - Set timeout to 120 seconds for long-running scans
-# --access-logfile - - Log access to stdout
-CMD ["gunicorn", "--bind", "0.0.0.0:5050", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "app:app"]
+# Default command (can be overridden by docker-compose)
+CMD ["gunicorn", "--bind", "0.0.0.0:5050", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "app:app"]

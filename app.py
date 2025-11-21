@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify
-import threading
 import os
 import json
-from main import run_scan
-from config import OUTPUT_DIR
+import redis
+from celery.result import AsyncResult
+from config import OUTPUT_DIR, SECRET_KEY, REDIS_URL
 from database import (
     init_db,
     get_all_scans,
@@ -13,11 +13,21 @@ from database import (
     get_live_hosts,
     get_urls,
     get_open_ports,
-    migrate_from_json,
+    migrate_from_sqlite,
     delete_scan
 )
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = SECRET_KEY
+
+# Initialize Redis client for caching
+try:
+    redis_client = redis.from_url(REDIS_URL)
+    redis_client.ping()
+    print("[+] Redis connection established")
+except Exception as e:
+    print(f"[!] Warning: Redis connection failed: {e}")
+    redis_client = None
 
 # Add JSON parsing filter for templates
 import json as json_module
@@ -34,9 +44,9 @@ def from_json_filter(value):
 # Initialize database
 init_db()
 
-# Try to migrate from JSON if it exists
+# Try to migrate from SQLite if it exists
 try:
-    migrate_from_json()
+    migrate_from_sqlite()
 except Exception as e:
     print(f"Migration note: {e}")
 
@@ -65,15 +75,22 @@ def new_scan():
         if not domain:
             return "Domain is required", 400
         
-        # Start scan in background
-        thread = threading.Thread(
-            target=run_scan, 
-            args=(domain, scan_type, tools)
-        )
-        thread.daemon = True
-        thread.start()
+        # Import Celery task
+        from tasks import scan_domain_task
         
-        return redirect(url_for('index'))
+        # Start scan asynchronously via Celery
+        task = scan_domain_task.delay(domain, scan_type, tools)
+        
+        # Store task ID in Redis for tracking (optional)
+        if redis_client:
+            redis_client.setex(f"task:{task.id}", 86400, json.dumps({
+                'domain': domain,
+                'scan_type': scan_type,
+                'tools': tools
+            }))
+        
+        # Redirect to task status page
+        return redirect(url_for('task_status', task_id=task.id))
         
     return render_template('new_scan.html')
 
@@ -148,6 +165,54 @@ def delete_scan_route(scan_id):
         return redirect(url_for('index'))
     except Exception as e:
         return f"Error deleting scan: {e}", 500
+
+@app.route('/api/task/<task_id>/status')
+def api_task_status(task_id):
+    """API endpoint to get task status."""
+    from celery_app import celery_app
+    
+    task = AsyncResult(task_id, app=celery_app)
+    
+    response = {
+        'task_id': task_id,
+        'state': task.state,
+        'ready': task.ready(),
+    }
+    
+    if task.state == 'PENDING':
+        response['status'] = 'Task is waiting to start...'
+    elif task.state == 'STARTED':
+        response['status'] = 'Task has started...'
+    elif task.state == 'PROGRESS':
+        response['status'] = task.info.get('status', 'In progress...')
+        response['progress'] = task.info.get('progress', 0)
+        response['scan_id'] = task.info.get('scan_id')
+    elif task.state == 'SUCCESS':
+        response['status'] = 'Task completed successfully'
+        response['result'] = task.result
+        response['scan_id'] = task.result.get('scan_id') if task.result else None
+    elif task.state == 'FAILURE':
+        response['status'] = f'Task failed: {str(task.info)}'
+        response['error'] = str(task.info)
+    
+    return jsonify(response)
+
+@app.route('/task/<task_id>')
+def task_status(task_id):
+    """Page to view task status."""
+    return render_template('task_status.html', task_id=task_id)
+
+@app.route('/api/task/<task_id>/cancel', methods=['POST'])
+def cancel_task(task_id):
+    """Cancel a running task."""
+    from celery_app import celery_app
+    
+    celery_app.control.revoke(task_id, terminate=True)
+    
+    return jsonify({
+        'success': True,
+        'message': f'Task {task_id} has been cancelled'
+    })
 
 @app.route('/api/scan/<int:scan_id>/run-tool', methods=['POST'])
 def run_tool_on_hosts(scan_id):
