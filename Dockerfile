@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
     wget \
     git \
     unzip \
+    build-essential \
+    libpcap-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Go (needed for subfinder, httpx, etc. if we install them from source)
@@ -25,7 +28,7 @@ ENV PATH=$PATH:/usr/local/go/bin:/root/go/bin
 # Install Subfinder, HTTPX, Naabu, Katana, Nuclei, GAU
 RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
 RUN go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
-RUN go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest
+RUN go install -v github.com/projectdiscovery/naabu/v3/cmd/naabu@latest
 RUN go install -v github.com/projectdiscovery/katana/cmd/katana@latest
 RUN go install -v github.com/projectdiscovery/nuclei/v2/cmd/nuclei@latest
 RUN go install -v github.com/lc/gau/v2/cmd/gau@latest
