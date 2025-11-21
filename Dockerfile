@@ -53,5 +53,9 @@ COPY . .
 # Expose the port
 EXPOSE 5050
 
-# Run the application
-CMD ["python", "app.py"]
+# Run the application with gunicorn for production
+# --bind 0.0.0.0:5050 - Listen on all interfaces on port 5050
+# --workers 2 - Use 2 worker processes
+# --timeout 120 - Set timeout to 120 seconds for long-running scans
+# --access-logfile - - Log access to stdout
+CMD ["gunicorn", "--bind", "0.0.0.0:5050", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "app:app"]

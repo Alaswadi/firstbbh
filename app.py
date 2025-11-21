@@ -224,4 +224,5 @@ def run_tool_on_hosts(scan_id):
 
 if __name__ == '__main__':
     # Listen on 0.0.0.0 to allow external access (e.g., from VPS)
-    app.run(debug=True, port=5050, host='0.0.0.0')
+    # Use debug=False for production deployment
+    app.run(debug=False, port=5050, host='0.0.0.0')
